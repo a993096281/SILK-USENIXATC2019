@@ -287,7 +287,7 @@ int ThreadPoolImpl::Impl::GetBackgroundThreads() {
 
 void ThreadPoolImpl::Impl::StartBGThreads() {
   // Start background thread if necessary
-  printf("------> TOTAL THREADS LIMIT total_threads_limit_ %d\n\n", total_threads_limit_);
+  //printf("------> TOTAL THREADS LIMIT total_threads_limit_ %d\n\n", total_threads_limit_);
   while ((int)bgthreads_.size() < total_threads_limit_) {
 
     port::Thread p_t(&BGThreadWrapper,

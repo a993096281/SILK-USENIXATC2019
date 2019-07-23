@@ -11,7 +11,7 @@ SHELL := $(shell which bash)
 
 CLEAN_FILES = # deliberately empty, so we can append below.
 CFLAGS += ${EXTRA_CFLAGS}
-CXXFLAGS += ${EXTRA_CXXFLAGS}
+CXXFLAGS += ${EXTRA_CXXFLAGS} -Wno-deprecated-copy -Wno-pessimizing-move
 LDFLAGS += $(EXTRA_LDFLAGS)
 MACHINE ?= $(shell uname -m)
 ARFLAGS = ${EXTRA_ARFLAGS} rs
@@ -501,8 +501,8 @@ TEST_LIBS = \
 	librocksdb_env_basic_test.a
 
 # TODO: add back forward_iterator_bench, after making it build in all environemnts.
-BENCHMARKS = db_bench table_reader_bench cache_bench memtablerep_bench column_aware_encoding_exp persistent_cache_bench
-
+#BENCHMARKS = db_bench table_reader_bench cache_bench memtablerep_bench column_aware_encoding_exp persistent_cache_bench
+BENCHMARKS = db_bench
 # if user didn't config LIBNAME, set the default
 ifeq ($(LIBNAME),)
 # we should only run rocksdb in production with DEBUG_LEVEL 0

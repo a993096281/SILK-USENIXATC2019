@@ -250,7 +250,12 @@ void DBImpl::CancelAllBackgroundWork(bool wait) {
     bg_cv_.Wait();
   }
 }
-
+////
+bool DBImpl::HaveBalancedDistribution(ColumnFamilyHandle* column_family){
+  auto* cfd = reinterpret_cast<ColumnFamilyHandleImpl*>(column_family)->cfd();
+  return cfd->HaveBalancedDistribution();
+}
+////
 DBImpl::~DBImpl() {
   // CancelAllBackgroundWork called with false means we just set the shutdown
   // marker. After this we do a variant of the waiting and unschedule work
@@ -980,7 +985,7 @@ Status DBImpl::GetImpl(const ReadOptions& read_options,
     sv->current->Get(read_options, lkey, pinnable_val, &s, &merge_context,
                      &range_del_agg, value_found);
     RecordTick(stats_, MEMTABLE_MISS);
-    s = Status::TryAgain();
+    //s = Status::TryAgain();
     //READ from DISK <-- shouldn't do this. Should return and re-schedule in a different queue. 
   }
 

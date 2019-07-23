@@ -206,6 +206,8 @@ LIB_SOURCES =                                                   \
   utilities/ttl/db_ttl_impl.cc                                  \
   utilities/write_batch_with_index/write_batch_with_index.cc    \
   utilities/write_batch_with_index/write_batch_with_index_internal.cc    \
+  log/my_log.cc \
+  log/global_statistic.cc \
 
 TOOL_LIB_SOURCES = \
   tools/ldb_cmd.cc                                               \

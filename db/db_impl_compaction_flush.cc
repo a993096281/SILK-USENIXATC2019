@@ -1033,7 +1033,7 @@ Status DBImpl::EnableAutoCompaction(
 void DBImpl::MaybeScheduleFlushOrCompaction() {
   mutex_.AssertHeld();
 
-  printf("[COMPACTION-QUEUES] Compactions waiting: %d \n", unscheduled_compactions_ + bg_compaction_scheduled_);
+  //printf("[COMPACTION-QUEUES] Compactions waiting: %d \n", unscheduled_compactions_ + bg_compaction_scheduled_);
 
   if (!opened_successfully_) {
     // Compaction may introduce data race to DB open

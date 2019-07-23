@@ -67,7 +67,10 @@ class DBImpl : public DB {
  public:
   DBImpl(const DBOptions& options, const std::string& dbname);
   virtual ~DBImpl();
-
+////
+  using DB::HaveBalancedDistribution;
+  virtual bool HaveBalancedDistribution(ColumnFamilyHandle* column_family) override;
+////
   // Implementations of the DB interface
   using DB::Put;
   virtual Status Put(const WriteOptions& options,

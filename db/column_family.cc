@@ -806,6 +806,15 @@ bool ColumnFamilyData::NeedsCompaction() const {
   //return false;
   return compaction_picker_->NeedsCompaction(current_->storage_info());
 }
+////
+bool ColumnFamilyData::HaveBalancedDistribution() const {
+  if( current_->storage_info()->NumLevelFiles(0) >= mutable_cf_options_.level0_file_num_compaction_trigger || 
+      current_->storage_info()->NumLevelBytes(1) >= mutable_cf_options_.max_bytes_for_level_base ) {
+        return false;
+  }
+  return !compaction_picker_->NeedsCompaction(current_->storage_info());
+}
+////
 
 Compaction* ColumnFamilyData::PickCompaction(
     const MutableCFOptions& mutable_options, LogBuffer* log_buffer) {

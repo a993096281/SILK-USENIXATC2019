@@ -61,6 +61,9 @@
 #include "util/string_util.h"
 #include "util/sync_point.h"
 
+#include "log/my_log.h"
+#include "log/global_statistic.h"
+
 namespace rocksdb {
 
 // Maintains state for each sub-compaction
@@ -611,7 +614,11 @@ Status CompactionJob::Install(const MutableCFOptions& mutable_cf_options) {
     bytes_written_per_sec =
         stats.bytes_written / static_cast<double>(stats.micros);
   }
-
+#ifdef STATISTIC_OPEN
+    uint64_t read_all = stats.bytes_read_non_output_levels + stats.bytes_read_output_level;
+    uint64_t start_time = get_now_micros() - stats.micros - global_stats.start_time;
+    RECORD_INFO(3,"%ld,%.2f,%.2f,%.5f,%.3f,%d\n",++global_stats.compaction_num, 1.0*read_all/1048576.0,1.0*stats.bytes_written/1048576.0,1.0*stats.micros*1e-6,1.0*start_time*1e-6,compact_->compaction->start_level() == 0);
+#endif
   ROCKS_LOG_BUFFER(
       log_buffer_,
       "[%s] compacted to: %s, MB/sec: %.1f rd, %.1f wr, level %d, "
