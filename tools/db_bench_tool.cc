@@ -1540,6 +1540,7 @@ class Stats {
 
     delete []ops_latency;
     ops_latency = nullptr;
+    fflush(stdout);
   }
   void AddMessage(Slice msg) {
     AppendWithSpace(&message_, msg);
