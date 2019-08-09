@@ -202,9 +202,9 @@ std::string HistogramStat::ToString() const {
   r.append(buf);
   snprintf(buf, sizeof(buf),
            "Percentiles: "
-           "P50: %.2f P75: %.2f P90: %.2f P99: %.2f P99.9: %.2f P99.99: %.2f\n",
+           "P50: %.2f P75: %.2f P90: %.2f P99: %.2f P99.9: %.2f P99.99: %.2f P99.999: %.2f\n",
            Percentile(50), Percentile(75), Percentile(90), Percentile(99), Percentile(99.9),
-           Percentile(99.99));
+           Percentile(99.99), Percentile(99.999));
   r.append(buf);
   r.append("------------------------------------------------------\n");
   const double mult = 100.0 / cur_num;

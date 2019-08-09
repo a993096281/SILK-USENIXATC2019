@@ -215,9 +215,9 @@ DEFINE_string(
 
 DEFINE_bool(report_write_latency, false,"");
 
-////
-uint64_t *ops_latency = nullptr;
-////
+/////
+DEFINE_bool(report_ops_latency, false,"");
+/////
 
 DEFINE_int64(prob, 9900, " the threshold for the prob variable");
 
@@ -1497,51 +1497,7 @@ class Stats {
     finish_ = FLAGS_env->NowMicros();
     seconds_ = (finish_ - start_) * 1e-6;
   }
-  void ReportLatency(){
-    if( !FLAGS_report_write_latency || ops_latency == nullptr) return;
-    std::sort(ops_latency, ops_latency + done_);
-    /* for(uint64_t i = 0; i < done_; i++) {
-      printf("%lu\n",ops_latency[i]);
-    }
-    printf("done:%lu\n",done_); */
-    uint64_t cnt = 0;
-    printf("---------write latency---------\n");
-    cnt = 0.1 * done_;
-    printf("latency: 10%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.2 * done_;
-    printf("latency: 20%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.3 * done_;
-    printf("latency: 30%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.4 * done_;
-    printf("latency: 40%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.5 * done_;
-    printf("latency: 50%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.6 * done_;
-    printf("latency: 60%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.7 * done_;
-    printf("latency: 70%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.8 * done_;
-    printf("latency: 80%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.9 * done_;
-    printf("latency: 90%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.99 * done_;
-    printf("latency: 99%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.999 * done_;
-    printf("latency: 99.9%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.9999 * done_;
-    printf("latency: 99.99%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    cnt = 0.99999 * done_;
-    printf("latency: 99.999%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
-    printf("-------------------------------\n");
 
-    for(uint64_t i = 0; i < done_; i++) {
-      RECORD_INFO(4,"%lu\n",ops_latency[i]);
-    }
-
-    delete []ops_latency;
-    ops_latency = nullptr;
-    fflush(stdout);
-  }
   void AddMessage(Slice msg) {
     AppendWithSpace(&message_, msg);
   }
@@ -1971,7 +1927,47 @@ class TimestampEmulator {
   uint64_t Get() const { return timestamp_.load(); }
   void Inc() { timestamp_++; }
 };
+void ReportLatency(uint64_t *ops_latency, uint64_t num) {
+    if( ops_latency == nullptr || num < 10 ) return;
+    std::sort(ops_latency, ops_latency + num);
+    /* for(uint64_t i = 0; i < num; i++) {
+      printf("%lu\n",ops_latency[i]);
+    }
+    printf("done:%lu\n",num); */
+    uint64_t cnt = 0;
+    printf("---------write latency---------\n");
+    cnt = 0.1 * num;
+    printf("latency: 10%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.2 * num;
+    printf("latency: 20%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.3 * num;
+    printf("latency: 30%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.4 * num;
+    printf("latency: 40%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.5 * num;
+    printf("latency: 50%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.6 * num;
+    printf("latency: 60%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.7 * num;
+    printf("latency: 70%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.8 * num;
+    printf("latency: 80%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.9 * num;
+    printf("latency: 90%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.99 * num;
+    printf("latency: 99%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.999 * num;
+    printf("latency: 99.9%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.9999 * num;
+    printf("latency: 99.99%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    cnt = 0.99999 * num;
+    printf("latency: 99.999%%th(%lu) = [%lu us]\n", cnt, ops_latency[cnt - 1]);
+    printf("-------------------------------\n");
 
+    for(uint64_t i = 0; i < num; i++) {
+      RECORD_INFO(4,"%lu\n",ops_latency[i]);
+    }
+}
 // State shared by all concurrent executions of the same benchmark.
 struct SharedState {
   port::Mutex mu;
@@ -1992,10 +1988,20 @@ struct SharedState {
   bool start;
 
   std::queue<std::pair<int, std::chrono::microseconds>> op_queues[5][8]; //only used in QueuingMeasurements
+  //port::Mutex mu_queues[5][8];
   int send_low_workload; //only used in FluctuatingThroughput test for generating high and low throughput
   int peak_sleep_time; //only used in ProductionWorkloadTest test for generating high and low throughput
   int high_peak; // used in LongPeakTest test for generating a high peak
   long cur_ops_interval;
+
+//////for report_ops_latency && ( fillrandom )
+port::Mutex latencys_mutex;
+uint64_t *latencys = nullptr;
+uint64_t ops_num = 0;
+uint64_t ops_bytes = 0;
+
+//////
+
 
   SharedState() : cv(&mu), perf_level(FLAGS_perf_level) { }
 };
@@ -2916,6 +2922,10 @@ void VerifyDBFromDB(std::string& truth_db_name) {
                                              FLAGS_report_interval_seconds));
     }
 
+    if ( FLAGS_report_ops_latency && ( method == &Benchmark::WriteRandom || method == &Benchmark::YCSBWorkloadA) ) {
+      shared.latencys = new uint64_t[FLAGS_num * n];
+    }
+
     ThreadArg* arg = new ThreadArg[n];
 
     for (int i = 0; i < n; i++) {
@@ -2963,7 +2973,12 @@ void VerifyDBFromDB(std::string& truth_db_name) {
       merge_stats.Merge(arg[i].thread->stats);
     }
     merge_stats.Report(name);
-    merge_stats.ReportLatency();
+    ReportLatency(shared.latencys, shared.ops_num);
+
+    if ( FLAGS_report_ops_latency && ( method == &Benchmark::WriteRandom || method == &Benchmark::YCSBWorkloadA) ) {
+      delete[] shared.latencys;
+      shared.latencys = nullptr;
+    }
 
     for (int i = 0; i < n; i++) {
       delete arg[i].thread;
@@ -3779,10 +3794,7 @@ void VerifyDBFromDB(std::string& truth_db_name) {
 #ifdef STATISTIC_OPEN
     global_stats.start_time = t_start_time;
 #endif
-    uint64_t l_last_time = Env::Default()->NowMicros();
-    if( FLAGS_report_write_latency ){
-      ops_latency = new uint64_t[FLAGS_num];
-    }
+    uint64_t per_write_start_time = 0;
 
     while (!duration.Done(entries_per_batch_)) {
       if (duration.GetStage() != stage) {
@@ -3810,6 +3822,10 @@ void VerifyDBFromDB(std::string& truth_db_name) {
         thread->stats.ResetLastOpTime();
       }
 
+      if (FLAGS_report_ops_latency) {   //entries_per_batch_ need equal 1
+        per_write_start_time = FLAGS_env->NowMicros();
+      }
+
       for (int64_t j = 0; j < entries_per_batch_; j++) {
         int64_t rand_num = key_gens[id]->Next();
         GenerateKeyFromInt(rand_num, FLAGS_num, &key);
@@ -3831,11 +3847,6 @@ void VerifyDBFromDB(std::string& truth_db_name) {
                     gen.Generate(value_size_));
         }
         bytes += value_size_ + key_size_;
-        if( FLAGS_report_write_latency ) {
-          uint64_t l_end_time = Env::Default()->NowMicros();
-          ops_latency[num_written] = l_end_time - l_last_time;
-          l_last_time = l_end_time;
-        }
         ++num_written;
         if (writes_per_range_tombstone_ > 0 &&
             num_written / writes_per_range_tombstone_ <=
@@ -3883,6 +3894,15 @@ void VerifyDBFromDB(std::string& truth_db_name) {
         s = db_with_cfh->db->Write(write_options_, &batch);
 #endif  //  ROCKSDB_LITE
       }
+      if (FLAGS_report_ops_latency) {   //entries_per_batch_ need equal 1
+
+        thread->shared->latencys_mutex.Lock();
+        thread->shared->latencys[thread->shared->ops_num] = FLAGS_env->NowMicros() - per_write_start_time;
+        thread->shared->ops_num++;
+        thread->shared->ops_bytes += (value_size_ + key_size_);
+        thread->shared->latencys_mutex.Unlock();
+      }
+
       thread->stats.FinishedOps(db_with_cfh, db_with_cfh->db,
                                 entries_per_batch_, kWrite);
       if (!s.ok()) {
@@ -5027,11 +5047,18 @@ void VerifyDBFromDB(std::string& truth_db_name) {
 // Thread 14 is the one that controls throughput fluctuations
 
 void LongPeakTest(ThreadState* thread) {
-    printf("Starting LongPeakTest test\n");
 
     ReadOptions options(FLAGS_verify_checksum, true);
     RandomGenerator gen;
-    Duration duration(FLAGS_duration, readwrites_);
+    int64_t readwrites = readwrites_;
+    if(thread->tid > 8 && thread->tid < 14) {
+      readwrites = readwrites / 5;
+    }
+    else if(thread->tid > 0 && thread->tid < 9) {
+      readwrites = readwrites / 8;
+    }
+    printf("Starting LongPeakTest test thread:%d readwrites_：%d\n",thread->tid,readwrites);
+    Duration duration(FLAGS_duration, readwrites);
     std::string value;
     long vals_generated = 0;
     long writes_done = 0;
@@ -5043,7 +5070,10 @@ void LongPeakTest(ThreadState* thread) {
 
     int steady_workload_time = 0;
 
-    while (!duration.Done(1)) {
+    bool done_ = false; //
+    done_ = duration.Done(1);  
+
+    while (!done_) {
         DB* db = SelectDB(thread);
         if (!thread->init){
             if(thread->tid != 0 ){
@@ -5095,6 +5125,9 @@ void LongPeakTest(ThreadState* thread) {
             }
 
             usleep(FLAGS_SILK_bandwidth_check_interval); // sleep 10ms by default
+            if( thread->shared->num_done >= 13) {
+              done_ = true;
+            }
         // END COMMENT TO TOGGLE SILK TESTING 
 
         } else if (thread->tid > 8 && thread->tid < 14) {
@@ -5105,8 +5138,18 @@ void LongPeakTest(ThreadState* thread) {
                 (std::chrono::system_clock::now().time_since_epoch());
             
             std::pair<int, std::chrono::microseconds> val_timestamp_tuple(val_size, ms);
-            thread->shared->op_queues[thread->tid - 9][workerthread].push(val_timestamp_tuple);        
+            /* if(thread->shared->op_queues[thread->tid - 9][workerthread].size() > 1000) {
+              workerthread = (workerthread + 1) % 8;
+              usleep(1000);
+              continue;
+            } */
+            //thread->shared->mu_queues[thread->tid - 9][workerthread].Lock();
+            thread->shared->op_queues[thread->tid - 9][workerthread].push(val_timestamp_tuple);
+            //thread->shared->mu_queues[thread->tid - 9][workerthread].Unlock();
+            //printf("th:%d %d push number:%lu\n",thread->tid, workerthread,thread->shared->op_queues[thread->tid - 9][workerthread].size());        
             workerthread = (workerthread + 1) % 8;
+
+            done_ = duration.Done(1);
 
             vals_generated++;
 
@@ -5137,15 +5180,22 @@ void LongPeakTest(ThreadState* thread) {
             steady_workload_time += 10;
             
             std::this_thread::sleep_for(std::chrono::microseconds(sleep_time)); //sleep for 10s
-            
+            if( thread->shared->num_done >= 13) {
+              done_ = true;
+            }
 
         }else {
             //Worker thread
+            //printf("th:%d  work :%lu\n",thread->tid,thread->shared->op_queues[cur_queue][thread->tid - 1].size());
             //if my queue isn't empty, I pop the first element and I perform an operation on the DB 
+            //thread->shared->mu_queues[cur_queue][thread->tid - 1].Lock();
+            //bool mu_queues_lock = true;
             if (!thread->shared->op_queues[cur_queue][thread->tid - 1].empty()){
                 std::pair<int, std::chrono::microseconds> pair_val_time = 
                     thread->shared->op_queues[cur_queue][thread->tid - 1].front();
                 thread->shared->op_queues[cur_queue][thread->tid - 1].pop();
+                 //thread->shared->mu_queues[cur_queue][thread->tid - 1].Unlock();
+                 //mu_queues_lock = false;
                 std::chrono::microseconds out_of_queue_time = std::chrono::duration_cast< std::chrono::microseconds >
                 (std::chrono::system_clock::now().time_since_epoch());
 
@@ -5163,11 +5213,13 @@ void LongPeakTest(ThreadState* thread) {
                 int op_prob = thread->rand.Next() % 100;
 
                 if (op_prob < 50) {
+                    //printf("th:%d %d put\n",thread->tid, cur_queue);
                     Status s = db->Put(write_options_, key, gen.Generate(pair_val_time.first));
                     if (!s.ok()) {
                         fprintf(stderr, "put error: %s\n", s.ToString().c_str());
                         exit(1);
                     }
+                    //printf("th:%d %d put ok\n",thread->tid, cur_queue);
                     writes_done++;
                     long curops = thread->stats.FinishedOpsQUEUES(nullptr, db, 1, (pair_val_time.second).count(), kWrite);
                     if (curops != 0 && thread->tid == 1){
@@ -5175,7 +5227,9 @@ void LongPeakTest(ThreadState* thread) {
                     }
 
                 } else{
+                    //printf("th:%d %d get\n",thread->tid, cur_queue);
                     Status s = db->Get(options, key, &value);
+                    //printf("th:%d %d get ok\n",thread->tid, cur_queue);
                     reads_done++;
                     long curops =  thread->stats.FinishedOpsQUEUES(nullptr, db, 1, (pair_val_time.second).count(), kRead);
                     if (curops != 0 && thread->tid == 1){
@@ -5183,12 +5237,17 @@ void LongPeakTest(ThreadState* thread) {
                     }
 
                 }
-
+              done_ = duration.Done(1);
             }
+            //if (mu_queues_lock) {
+             // thread->shared->mu_queues[cur_queue][thread->tid - 1].Unlock();
+            //}
+                 
             cur_queue = (cur_queue + 1)%5;
 
         }
     }
+    printf("th:%d done!\n",thread->tid);
 
 }
 
@@ -5683,15 +5742,16 @@ void ReadRandomWriteRandomSplitRangeDifferentValueSizes(ThreadState* thread) {
   void YCSBWorkloadA(ThreadState* thread) {
     ReadOptions options(FLAGS_verify_checksum, true);
     RandomGenerator gen;
-    init_latestgen(FLAGS_num);
+    //init_latestgen(FLAGS_num);
     init_zipf_generator(0, FLAGS_num);
     
     std::string value;
     int64_t found = 0;
+    uint64_t per_op_start_time = 0;
 
     int64_t reads_done = 0;
     int64_t writes_done = 0;
-    Duration duration(FLAGS_duration, 0);
+    Duration duration(FLAGS_duration, FLAGS_num);
 
     std::unique_ptr<const char[]> key_guard;
     Slice key = AllocateKey(&key_guard);
@@ -5716,19 +5776,24 @@ void ReadRandomWriteRandomSplitRangeDifferentValueSizes(ThreadState* thread) {
           }
           GenerateKeyFromInt(k, FLAGS_num, &key);
 
+          if (FLAGS_report_ops_latency) {   //
+            per_op_start_time = FLAGS_env->NowMicros();
+          }
+
           int next_op = thread->rand.Next() % 100;
           if (next_op < 50){
             //read
             Status s = db->Get(options, key, &value);
             if (!s.ok() && !s.IsNotFound()) {
-              //fprintf(stderr, "k=%d; get error: %s\n", k, s.ToString().c_str());
+              fprintf(stderr, "k=%d; get error: %s\n", k, s.ToString().c_str());
               //exit(1);
               // we continue after error rather than exiting so that we can
               // find more errors if any
             } else if (!s.IsNotFound()) {
               found++;
-              thread->stats.FinishedOps(nullptr, db, 1, kRead);
+              //thread->stats.FinishedOps(nullptr, db, 1, kRead);
             }
+            thread->stats.FinishedOps(nullptr, db, 1, kRead);  //not found is normal operation
             reads_done++;
             
           } else{
@@ -5740,17 +5805,25 @@ void ReadRandomWriteRandomSplitRangeDifferentValueSizes(ThreadState* thread) {
                     nullptr /* stats */, RateLimiter::OpType::kWrite);
                 thread->stats.ResetLastOpTime();
             }
+            if (FLAGS_report_ops_latency) {   //
+              per_op_start_time = FLAGS_env->NowMicros();
+            }
             Status s = db->Put(write_options_, key, gen.Generate(value_size_));
             if (!s.ok()) {
-              //fprintf(stderr, "put error: %s\n", s.ToString().c_str());
+              fprintf(stderr, "put error: %s\n", s.ToString().c_str());
               //exit(1);
             } else{
              writes_done++;
              thread->stats.FinishedOps(nullptr, db, 1, kWrite);
             }                
-      }
+          }
+          if (FLAGS_report_ops_latency) {   //
 
-
+            thread->shared->latencys_mutex.Lock();
+            thread->shared->latencys[thread->shared->ops_num] = FLAGS_env->NowMicros() - per_op_start_time;
+            thread->shared->ops_num++;
+            thread->shared->latencys_mutex.Unlock();
+          }
 
     } 
     char msg[100];
