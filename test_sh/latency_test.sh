@@ -1,8 +1,7 @@
 #! /bin/sh
 
-db="/mnt/ssd/ceshi"
-#bench_level0_file_path="/pmem/ceshi"
-#level0_file_path=""
+db="/pmem/ceshi"
+
 value_size="4096"
 compression_type="none" #"snappy,none"
 
@@ -10,9 +9,9 @@ compression_type="none" #"snappy,none"
 #bench_benchmarks="fillrandom,stats,readseq,readrandom,readrandom,readrandom,stats"
 #bench_benchmarks="fillrandom,stats,wait,stats,readseq,readrandom,readrandom,readrandom,stats"
 #bench_benchmarks="fillrandom,stats,wait,clean_cache,stats,readseq,readrandom,readrandom,readrandom,stats"
-#benchmarks="fillrandomcontrolrequest,stats"
-benchmarks="fillrandom,stats"
-num="2000000"
+benchmarks="fillrandomcontrolrequest,stats"
+#benchmarks="fillrandom,stats"
+num="20000000"
 #reads="100"
 #bench_max_open_files="1000"
 max_background_jobs="2"
@@ -25,12 +24,14 @@ max_bytes_for_level_base="`expr 256 \* 1024 \* 1024`"
 #stats_interval_seconds="10"
 histogram="true"
 
-threads="1"
+threads="3"
 
-#request_rate_limit="18000"
-benchmark_write_rate_limit="`expr 18000 \* $value_size`"  #20K iops
+request_rate_limit="20000"
+#benchmark_write_rate_limit="`expr 20000 \* \( $value_size + 16 \)`"  #20K iops, key: 16 bytes
 
-report_ops_latency="true"
+#report_ops_latency="true"
+
+per_queue_length="16"
 
 
 const_params=""
@@ -38,10 +39,6 @@ const_params=""
 function FILL_PATAMS() {
     if [ -n "$db" ];then
         const_params=$const_params"--db=$db "
-    fi
-
-    if [ -n "$level0_file_path" ];then
-        const_params=$const_params"--level0_file_path=$level0_file_path "
     fi
 
     if [ -n "$value_size" ];then
@@ -102,6 +99,18 @@ function FILL_PATAMS() {
 
     if [ -n "$report_ops_latency" ];then
         const_params=$const_params"--report_ops_latency=$report_ops_latency "
+    fi
+
+    if [ -n "$YCSB_uniform_distribution" ];then
+        const_params=$const_params"--YCSB_uniform_distribution=$YCSB_uniform_distribution "
+    fi
+
+    if [ -n "$ycsb_workloada_num" ];then
+        const_params=$const_params"--ycsb_workloada_num=$ycsb_workloada_num "
+    fi
+
+    if [ -n "$per_queue_length" ];then
+        const_params=$const_params"--per_queue_length=$per_queue_length "
     fi
 
 }

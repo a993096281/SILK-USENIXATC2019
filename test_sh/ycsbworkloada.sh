@@ -1,8 +1,6 @@
 #! /bin/sh
 
 db="/mnt/ssd/ceshi"
-#bench_level0_file_path="/pmem/ceshi"
-#level0_file_path=""
 value_size="4096"
 compression_type="none" #"snappy,none"
 
@@ -11,8 +9,8 @@ compression_type="none" #"snappy,none"
 #bench_benchmarks="fillrandom,stats,wait,stats,readseq,readrandom,readrandom,readrandom,stats"
 #bench_benchmarks="fillrandom,stats,wait,clean_cache,stats,readseq,readrandom,readrandom,readrandom,stats"
 #benchmarks="fillrandom,stats,wait,stats"
-benchmarks="ycsbwklda,stats,wait,stats"
-num="20000000"
+benchmarks="ycsbwklda,stats"
+num="500000"
 
 max_background_jobs="2"
 #max_bytes_for_level_base="`expr 8 \* 1024 \* 1024 \* 1024`"   #8G
@@ -24,11 +22,16 @@ max_bytes_for_level_base="`expr 256 \* 1024 \* 1024`"
 #stats_interval_seconds="10"
 histogram="true"
 
-threads="1"
+threads="2"
 
-benchmark_write_rate_limit="`expr 20000 \* $value_size`"  #20K iops
+benchmark_write_rate_limit="`expr 20000 \* \( $value_size + 16 \)`"  #20K iops
 
 report_ops_latency="true"
+report_fillrandom_latency="true"
+
+
+YCSB_uniform_distribution="true"
+ycsb_workloada_num="60000"
 
 
 const_params=""
@@ -102,6 +105,18 @@ function FILL_PATAMS() {
         const_params=$const_params"--report_ops_latency=$report_ops_latency "
     fi
 
+    if [ -n "$YCSB_uniform_distribution" ];then
+        const_params=$const_params"--YCSB_uniform_distribution=$YCSB_uniform_distribution "
+    fi
+
+    if [ -n "$ycsb_workloada_num" ];then
+        const_params=$const_params"--ycsb_workloada_num=$ycsb_workloada_num "
+    fi
+
+    if [ -n "$report_fillrandom_latency" ];then
+        const_params=$const_params"--report_fillrandom_latency=$report_fillrandom_latency "
+    fi
+
 }
 CLEAN_CACHE() {
     if [ -n "$db" ];then
@@ -121,7 +136,7 @@ COPY_OUT_FILE(){
     \cp -f $bench_file_dir/OP_TIME.csv $res_dir/
     \cp -f $bench_file_dir/out.out $res_dir/
     \cp -f $bench_file_dir/Latency.csv $res_dir/
-    #\cp -f $bench_file_dir/PerSecondLatency.csv $res_dir/
+    \cp -f $bench_file_dir/PerSecondLatency.csv $res_dir/
     \cp -f $db/OPTIONS-* $res_dir/
 
     #\cp -f $db/LOG $res_dir/
